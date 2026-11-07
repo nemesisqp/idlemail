@@ -142,7 +142,7 @@ impl MailRetryAgent for FilesystemRetryAgent {
                             // try 10 append-indices against hash-collision
                             let file_name = format!(
                                 "{}/{}_to_{}-{}.json",
-                                config.path, &retry_mail.mail.hash, retry_mail.dstname, i
+                                config.path, retry_mail.mail.hash, retry_mail.dstname, i
                             );
                             if let Ok(retry_file) = fs::File::create(&file_name) {
                                 retry_mail.file_path = file_name.clone();

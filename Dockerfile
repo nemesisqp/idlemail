@@ -1,38 +1,35 @@
-FROM rustlang/rust:nightly as builder
+FROM rust:alpine AS builder
+
+RUN apk add --no-cache musl-dev openssl-dev openssl-libs-static pkgconf
 
 # Create base image only with our dependencies and build once
 # This creates a cache with the built dependencies
 RUN USER=root cargo new --bin idlemail
-WORKDIR ./idlemail
-COPY ./Cargo.toml ./Cargo.toml
+WORKDIR /idlemail
+COPY ./Cargo.toml ./Cargo.lock ./
 RUN cargo build --release
-RUN rm src/*.rs
+RUN rm -rf src
 
 # Add idlemail source-code
-ADD . ./
+COPY . .
 
-RUN rm ./target/release/deps/idlemail*
+RUN cargo clean -p idlemail --release || true
 RUN cargo build --release
 
 # Build actual runtime container
-FROM ubuntu:24.04
+FROM alpine:latest
 ARG APP=/idlemail
 
-RUN apt-get update \
-    && apt-get install -y ca-certificates tzdata \
-    && rm -rf /var/lib/apt/lists/*
-
-ENV APP_USER=idlemail
-
-RUN groupadd $APP_USER \
-    && useradd -g $APP_USER $APP_USER \
+RUN apk add --no-cache ca-certificates tzdata \
+    && addgroup -S idlemail \
+    && adduser -S -G idlemail idlemail \
     && mkdir -p ${APP}
 
 COPY --from=builder /idlemail/target/release/idlemail ${APP}/idlemail
 
-RUN chown -R $APP_USER:$APP_USER ${APP}
+RUN chown -R idlemail:idlemail ${APP}
 
-USER $APP_USER
+USER idlemail
 WORKDIR ${APP}
 
 CMD ["./idlemail", "/idlemail/config.json"]

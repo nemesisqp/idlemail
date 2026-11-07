@@ -2,3 +2,4 @@
 **/*.rs.bk
 testconfig*.json
 .vscode
+.DS_Store
